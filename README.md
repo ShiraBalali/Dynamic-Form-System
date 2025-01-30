@@ -253,3 +253,36 @@ DELETE /api/form/456
   "message": "You don't have permission to delete this form"
 }
 ```
+
+
+# Alternative solution:
+## New Schema Changes:
+
+ - Snapshots
+    - SnapshotID (PK)
+    - FillID (FK to Fill)
+    - Version (int)
+    - CreateDate (datetime)
+
+ - FillEntry
+    - EntryID (PK)
+    - SnapshotID (FK to Snapshots)
+    - FieldID (FK to Fields)
+    - ContentReference (FK to FillNumContent/FillTextContent/FillMultiContent)
+
+## New Logic
+Instead of adding versions to content tables, we use two new tables:
+- Snapshots - marks each version of a form fill.
+- FillEntry - maps each field in a snapshot to its content.
+
+When a form is updated:
+- Create new content records only for changed fields.
+- Create a new snapshot.
+- Create FillEntries pointing to new content for changed fields and reusing existing content references for unchanged fields.
+
+## Final Thoughts
+Adding a Version column and the Snapshot-Entry approach both give us perfect snapshots of the form.
+
+ The difference is where the complexity lives - the Version approach needs more work in the backend API to piece together the form state at any version, while the Snapshot-Entry approach makes querying easier but has more complex database structure.
+
+ I chose the Version approach since it's simpler to understand and maintain, even though it needs more API logic.
